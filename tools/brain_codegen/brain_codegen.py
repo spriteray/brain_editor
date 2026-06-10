@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Generate engine::brain Builder C++ code from behavior tree XML files.
+Generate engine::brain C++ code from behavior tree XML files.
 
 This script is intentionally self-contained so it can be copied into the C++
 server project and adapted to that project's include paths and factory naming.
-It does not generate node implementations or runtime node registration.
+It generates node registration from BrainNodeRegistry XML files and compile-time
+Builder code from behavior tree XML files. Node implementations stay hand-written.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ class ParamDef:
     type: str
     default: str
     order: int
+    values: list[str]
 
 
 @dataclass(frozen=True)
@@ -47,6 +49,11 @@ def parse_node_defs(path: Path) -> dict[str, NodeDef]:
                     type=param.attrib.get("type", "string"),
                     default=param.attrib.get("default", ""),
                     order=int(param.attrib.get("order", "0")),
+                    values=[
+                        item.strip()
+                        for item in param.attrib.get("values", "").split(",")
+                        if item.strip()
+                    ],
                 )
             )
         params.sort(key=lambda item: item.order)
@@ -92,6 +99,10 @@ def sanitize_symbol(name: str) -> str:
     return value
 
 
+def include_guard(filename: str) -> str:
+    return "GENERATED_BRAIN_" + re.sub(r"[^a-zA-Z0-9]", "_", filename).upper()
+
+
 def node_type(elem: ET.Element) -> str:
     if elem.tag == "Leaf":
         return elem.attrib["type"]
@@ -106,6 +117,34 @@ def format_arg(value: str, type_name: str) -> str:
     if type_name == "string":
         return quote(value)
     return value
+
+
+def xmlget_type(type_name: str) -> str:
+    mapping = {
+        "bool": "bool",
+        "int": "int32_t",
+        "float": "float",
+        "string": "std::string",
+    }
+    return mapping.get(type_name, type_name)
+
+
+def registry_arg_expr(param: ParamDef) -> str:
+    if param.type == "enum":
+        values = param.values
+        if not values:
+            raise ValueError(f"Enum param {param.name} must define values.")
+        default_value = param.default or values[0]
+        lines = [
+            "([&]() {",
+            f"                auto value = engine::xmlget<std::string>( root, \"{param.name}\" );",
+        ]
+        for value in values:
+            lines.append(f"                if ( value == \"{value}\" ) return {value};")
+        lines.append(f"                return {default_value};")
+        lines.append("            })()")
+        return "\n".join(lines)
+    return f"engine::xmlget<{xmlget_type(param.type)}>( root, \"{param.name}\" )"
 
 
 def node_args(elem: ET.Element, node_def: NodeDef) -> str:
@@ -155,24 +194,29 @@ def first_element_child(elem: ET.Element) -> ET.Element:
 
 def generate_behavior_cpp(behavior_xml: Path, nodes: dict[str, NodeDef], include: str) -> tuple[str, str, str]:
     tree_root = ET.parse(behavior_xml).getroot()
-    tree_name = tree_root.attrib.get("name", behavior_xml.stem)
-    symbol = sanitize_symbol(tree_name)
+    symbol = sanitize_symbol(behavior_xml.stem)
     root_node = first_element_child(tree_root)
 
     chain: list[str] = []
-    emit_node(root_node, nodes, 1, chain)
+    emit_node(root_node, nodes, 2, chain)
+    if chain:
+        chain[-1] += ";"
 
-    header_name = f"{symbol}.gen.h"
-    cpp_name = f"{symbol}.gen.cpp"
+    header_name = f"{symbol}.h"
+    cpp_name = f"{symbol}.cpp"
     function_name = f"create_{symbol}_tree"
+    guard = include_guard(header_name)
 
     header = "\n".join(
         [
-            "#pragma once",
+            f"#ifndef {guard}",
+            f"#define {guard}",
             "",
             '#include "engine/game/brain.h"',
             "",
             f"engine::brain::Tree * {function_name}();",
+            "",
+            f"#endif // {guard}",
             "",
         ]
     )
@@ -187,7 +231,8 @@ def generate_behavior_cpp(behavior_xml: Path, nodes: dict[str, NodeDef], include
             "    using namespace engine::brain;",
             "",
             "    Builder builder;",
-            "    builder" + "\n".join(chain) + ";",
+            "    builder",
+            *chain,
             "",
             "    return builder.build();",
             "}",
@@ -195,6 +240,60 @@ def generate_behavior_cpp(behavior_xml: Path, nodes: dict[str, NodeDef], include
         ]
     )
     return header_name, header, cpp_name, cpp
+
+
+def generate_registry(nodes: dict[str, NodeDef], registry_type: str, include: str) -> tuple[str, str]:
+    guard = include_guard("brain_nodes.h")
+    function_name = "register_brain_nodes"
+    header = "\n".join(
+        [
+            f"#ifndef {guard}",
+            f"#define {guard}",
+            "",
+            '#include "engine/game/brain.h"',
+            "",
+            f"void {function_name}( {registry_type} & registry );",
+            "",
+            f"#endif // {guard}",
+            "",
+        ]
+    )
+
+    lines = [
+        '#include "brain_nodes.h"',
+        '#include "engine/game/brain.h"',
+        '#include "engine/utils/xmldocument.h"',
+        include,
+        "",
+        f"void {function_name}( {registry_type} & registry )",
+        "{",
+        "    using namespace engine::brain;",
+        "",
+    ]
+
+    for node in sorted(nodes.values(), key=lambda item: item.name):
+        args = [registry_arg_expr(param) for param in node.params]
+        lines.extend(
+            [
+                f"    registry.reg( \"{node.name}\", [] ( engine::XmlNode * root ) -> Node * {{",
+            ]
+        )
+        if args:
+            joined_args = ",\n".join(f"            {arg}" for arg in args)
+            lines.extend(
+                [
+                    f"        return new {node.cpp}(",
+                    joined_args,
+                    "        );",
+                ]
+            )
+        else:
+            lines.append(f"        return new {node.cpp}();")
+        lines.extend(["    } );", ""])
+
+    lines.append("}")
+    lines.append("")
+    return header, "\n".join(lines)
 
 
 def main() -> int:
@@ -208,6 +307,8 @@ def main() -> int:
         help="Extra node definition XML file. Config directory XML files are loaded first.",
     )
     parser.add_argument("--out", type=Path, default=Path("generated/behaviors"))
+    parser.add_argument("--registry-out", type=Path, default=Path("generated"))
+    parser.add_argument("--registry-type", default="engine::brain::Registry")
     parser.add_argument(
         "--include",
         default='// TODO: include your game behavior node headers here',
@@ -217,6 +318,13 @@ def main() -> int:
 
     nodes = load_node_defs(args.config, args.nodes)
     args.out.mkdir(parents=True, exist_ok=True)
+    args.registry_out.mkdir(parents=True, exist_ok=True)
+
+    registry_header, registry_cpp = generate_registry(nodes, args.registry_type, args.include)
+    (args.registry_out / "brain_nodes.h").write_text(registry_header, encoding="utf-8")
+    (args.registry_out / "brain_nodes.cpp").write_text(registry_cpp, encoding="utf-8")
+    print(f"generated {args.registry_out / 'brain_nodes.h'}")
+    print(f"generated {args.registry_out / 'brain_nodes.cpp'}")
 
     behaviors_dir = args.config / "behaviors"
     behavior_files = sorted(behaviors_dir.glob("*.xml"))

@@ -428,8 +428,8 @@ function PropertyPanel() {
             <span>{param.displayName ?? param.name}</span>
             {param.type === "bool" ? (
               <select value={node.params[param.name] ?? ""} onChange={(event) => updateParam(node.id, param.name, event.target.value)}>
-                <option value="true">true</option>
-                <option value="false">false</option>
+                <option value="1">true</option>
+                <option value="0">false</option>
               </select>
             ) : param.type === "enum" ? (
               <select value={node.params[param.name] ?? ""} onChange={(event) => updateParam(node.id, param.name, event.target.value)}>

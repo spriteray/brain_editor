@@ -4,14 +4,14 @@
     <DisplayName>顺序节点</DisplayName>
     <Description>子节点依次执行，全部成功才成功。</Description>
     <Children min="1" max="*" />
-    <Param name="stateful" type="bool" default="false" order="1" displayName="记忆执行位置" />
+    <Param name="stateful" type="bool" default="0" order="1" displayName="记忆执行位置" />
   </Node>
 
   <Node name="Selector" category="Composite" cpp="Selector" folder="基础控制/流程">
     <DisplayName>选择节点</DisplayName>
     <Description>子节点依次执行，任意成功即成功。</Description>
     <Children min="1" max="*" />
-    <Param name="stateful" type="bool" default="false" order="1" displayName="记忆执行位置" />
+    <Param name="stateful" type="bool" default="0" order="1" displayName="记忆执行位置" />
   </Node>
 
   <Node name="Parallel" category="Composite" cpp="Parallel" folder="基础控制/流程">

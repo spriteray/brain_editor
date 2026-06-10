@@ -35,15 +35,23 @@ The package is written to `release/`.
 - `src/domain/xml.ts`: XML parser and serializer
 - `src/domain/validate.ts`: editor validation rules
 - `tools/brain_codegen/brain_codegen.py`: optional Python3 codegen script to copy into the C++ project
+- `tools/brain_codegen/runtime/brain_loader.h/.cpp`: optional rapidxml runtime tree loader template
 
 ## Runtime Model
 
-The editor only edits XML. In the C++ project, copy/adapt `tools/brain_codegen/brain_codegen.py` to generate compile-time behavior tree Builder code from `config/behaviors/*.xml`. Runtime hot update can still load the same XML files with a rapidxml-based loader. Node implementations and node registration remain hand-written in C++.
+The editor only edits XML. In the C++ project, copy/adapt `tools/brain_codegen/brain_codegen.py` to generate:
+
+- `brain_nodes.h/.cpp`: node registration code from `config/*.xml`
+- `behaviors/*.h/.cpp`: compile-time behavior tree Builder code from `config/behaviors/*.xml`
+
+Runtime hot update can load the same XML files with `tools/brain_codegen/runtime/brain_loader.h/.cpp`.
+Node implementations remain hand-written in C++, while node registration and tree construction are generated or loaded from XML.
 
 Example:
 
 ```powershell
 python tools/brain_codegen/brain_codegen.py `
   --config config `
+  --registry-out generated `
   --out generated/behaviors
 ```

@@ -63,6 +63,9 @@ export function createNodeFromDefinition(definition: NodeDefinition): BehaviorNo
   const params: Record<string, string> = {};
   for (const param of definition.params) {
     params[param.name] = param.defaultValue ?? "";
+    if (param.type === "bool") {
+      params[param.name] = param.defaultValue === "true" ? "1" : param.defaultValue === "false" ? "0" : params[param.name];
+    }
   }
   return {
     id: makeId(),
@@ -124,7 +127,13 @@ function nodeToXml(node: BehaviorNode, registry: Map<string, NodeDefinition>, de
   const params = definition?.params ?? [];
   const attrs = params
     .filter((param) => node.params[param.name] !== undefined && node.params[param.name] !== "")
-    .map((param) => `${param.name}="${escapeXml(node.params[param.name])}"`)
+    .map((param) => {
+      const rawValue = node.params[param.name];
+      const value = param.type === "bool"
+        ? rawValue === "true" || rawValue === "1" ? "1" : "0"
+        : rawValue;
+      return `${param.name}="${escapeXml(value)}"`;
+    })
     .join(" ");
 
   const tag = definition?.category === "Leaf" ? BUILTIN_LEAF_TAG : node.type;
