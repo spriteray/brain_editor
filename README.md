@@ -8,7 +8,7 @@ Behavior tree editor for `engine::brain`.
 - Edit behavior tree XML files
 - Validate child-count and parameter types
 - Preview XML, validate behavior trees, and simulate debug execution order
-- Package as a Windows zip for designers
+- Package as a Windows/macOS zip for designers
 
 ## Development
 
@@ -19,7 +19,14 @@ npm install
 npm run dev
 ```
 
-Build a green Windows package:
+On macOS or Linux shells, use the same npm commands:
+
+```bash
+npm install
+npm run dev
+```
+
+Build a package for the current platform:
 
 ```powershell
 npm run dist
@@ -56,5 +63,14 @@ Example:
 python tools/brain_codegen/brain_codegen.py `
   --config config `
   --registry-out generated `
+  --out generated/behaviors
+```
+
+macOS/Linux:
+
+```bash
+python3 tools/brain_codegen/brain_codegen.py \
+  --config config \
+  --registry-out generated \
   --out generated/behaviors
 ```
