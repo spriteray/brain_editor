@@ -1,0 +1,62 @@
+{
+  "name": "brain-editor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Behavior tree editor for engine::brain XML and C++ Builder code generation.",
+  "author": "BrainEditor Team",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch\" \"wait-on tcp:5173 dist-electron/main.js && electron .\"",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.electron.json && vite build",
+    "check:electron": "node scripts/check-electron.cjs",
+    "fix:electron-path": "node scripts/fix-electron-path.cjs",
+    "start": "electron .",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "fast-xml-parser": "4.5.0",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "5.0.0",
+    "@types/node": "^22.10.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "concurrently": "^9.1.0",
+    "electron": "31.7.7",
+    "electron-builder": "25.1.8",
+    "typescript": "^5.7.2",
+    "vite": "5.4.11",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.company.braineditor",
+    "productName": "BrainEditor",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "config/**/*",
+      "templates/**/*",
+      "examples/**/*",
+      "package.json"
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  }
+}

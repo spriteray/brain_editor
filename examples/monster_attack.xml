@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BehaviorTree name="MonsterAttack">
+  <Sequence stateful="false">
+    <Leaf type="MonitorHealth" />
+    <Leaf type="ComplexAttackAction" damage="100" cooldown="3" />
+    <Repeater limit="5">
+      <Leaf type="Noop" />
+    </Repeater>
+  </Sequence>
+</BehaviorTree>
