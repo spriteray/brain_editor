@@ -5,7 +5,7 @@ function issue(nodeId: string, message: string, level: ValidationIssue["level"] 
 }
 
 function validateParamValue(value: string, type: string, values?: string[]) {
-  if (type === "bool") return value === "true" || value === "false";
+  if (type === "bool") return value === "1" || value === "0";
   if (type === "int") return /^-?\d+$/.test(value);
   if (type === "float") return /^-?\d+(\.\d+)?$/.test(value);
   if (type === "enum") return values?.includes(value) ?? false;
