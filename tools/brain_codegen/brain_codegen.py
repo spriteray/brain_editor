@@ -324,8 +324,12 @@ def main() -> int:
         default=[],
         help="Extra node definition XML file. Config directory XML files are loaded first.",
     )
-    parser.add_argument("--out", type=Path, default=Path("generated/behaviors"))
-    parser.add_argument("--registry-out", type=Path, default=Path("generated"))
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=Path("generated"),
+        help="Generated C++ output directory. Behavior tree files are written to <out>/behaviors.",
+    )
     parser.add_argument("--registry-type", default="engine::brain::Registry")
     parser.add_argument(
         "--include",
@@ -335,14 +339,15 @@ def main() -> int:
     args = parser.parse_args()
 
     nodes = load_node_defs(args.config, args.nodes)
+    behaviors_out = args.out / "behaviors"
     args.out.mkdir(parents=True, exist_ok=True)
-    args.registry_out.mkdir(parents=True, exist_ok=True)
+    behaviors_out.mkdir(parents=True, exist_ok=True)
 
     registry_header, registry_cpp = generate_registry(nodes, args.registry_type, args.include)
-    (args.registry_out / "brain_nodes.h").write_text(registry_header, encoding="utf-8")
-    (args.registry_out / "brain_nodes.cpp").write_text(registry_cpp, encoding="utf-8")
-    print(f"generated {args.registry_out / 'brain_nodes.h'}")
-    print(f"generated {args.registry_out / 'brain_nodes.cpp'}")
+    (args.out / "brain_nodes.h").write_text(registry_header, encoding="utf-8")
+    (args.out / "brain_nodes.cpp").write_text(registry_cpp, encoding="utf-8")
+    print(f"generated {args.out / 'brain_nodes.h'}")
+    print(f"generated {args.out / 'brain_nodes.cpp'}")
 
     behaviors_dir = args.config / "behaviors"
     behavior_files = sorted(behaviors_dir.glob("*.xml"))
@@ -351,10 +356,10 @@ def main() -> int:
 
     for behavior_xml in behavior_files:
         header_name, header, cpp_name, cpp = generate_behavior_cpp(behavior_xml, nodes, args.include)
-        (args.out / header_name).write_text(header, encoding="utf-8")
-        (args.out / cpp_name).write_text(cpp, encoding="utf-8")
-        print(f"generated {args.out / header_name}")
-        print(f"generated {args.out / cpp_name}")
+        (behaviors_out / header_name).write_text(header, encoding="utf-8")
+        (behaviors_out / cpp_name).write_text(cpp, encoding="utf-8")
+        print(f"generated {behaviors_out / header_name}")
+        print(f"generated {behaviors_out / cpp_name}")
 
     return 0
 

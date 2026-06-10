@@ -62,8 +62,7 @@ Example:
 ```powershell
 python tools/brain_codegen/brain_codegen.py `
   --config config `
-  --registry-out generated `
-  --out generated/behaviors
+  --out generated
 ```
 
 macOS/Linux:
@@ -71,6 +70,5 @@ macOS/Linux:
 ```bash
 python3 tools/brain_codegen/brain_codegen.py \
   --config config \
-  --registry-out generated \
-  --out generated/behaviors
+  --out generated
 ```
