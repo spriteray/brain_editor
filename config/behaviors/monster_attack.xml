@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BehaviorTree name="MonsterAttack">
+  <Sequence stateful="false">
+    <Repeater limit="5">
+      <Leaf type="Noop" />
+    </Repeater>
+  </Sequence>
+</BehaviorTree>

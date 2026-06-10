@@ -55,6 +55,7 @@ ipcMain.handle("file:writeText", async (_event, filePath: string, content: strin
 
 ipcMain.handle("file:openText", async () => {
   const result = await dialog.showOpenDialog({
+    defaultPath: resolveAsset("config/behaviors"),
     filters: [{ name: "XML", extensions: ["xml"] }],
     properties: ["openFile"]
   });
@@ -67,7 +68,7 @@ ipcMain.handle(
   "file:saveText",
   async (_event, defaultPath: string, content: string, filters?: Electron.FileFilter[]) => {
   const result = await dialog.showSaveDialog({
-    defaultPath,
+    defaultPath: path.isAbsolute(defaultPath) ? defaultPath : resolveAsset(path.join("config/behaviors", defaultPath)),
     filters: filters ?? [{ name: "XML", extensions: ["xml"] }]
   });
   if (result.canceled || !result.filePath) return null;
@@ -78,4 +79,15 @@ ipcMain.handle(
 
 ipcMain.handle("asset:readText", async (_event, relativePath: string) => {
   return fs.readFile(resolveAsset(relativePath), "utf8");
+});
+
+ipcMain.handle("dialog:openNodeDefinition", async () => {
+  const result = await dialog.showOpenDialog({
+    defaultPath: resolveAsset("config"),
+    filters: [{ name: "XML", extensions: ["xml"] }],
+    properties: ["openFile"]
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  const filePath = result.filePaths[0];
+  return { filePath, content: await fs.readFile(filePath, "utf8") };
 });

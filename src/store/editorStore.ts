@@ -8,7 +8,7 @@ interface EditorState {
   definitions: NodeDefinition[];
   tree: BehaviorTree | null;
   selectedNodeId: string | null;
-  activePreview: "xml" | "cpp" | "issues" | "debug";
+  activePreview: "xml" | "issues" | "debug";
   debugStatusOverrides: Record<string, DebugStatus>;
   setBaseDefinitions: (definitions: NodeDefinition[]) => void;
   mergeDefinitions: (definitions: NodeDefinition[]) => void;

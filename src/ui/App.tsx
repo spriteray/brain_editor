@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, FileCode2, FolderOpen, Plus, Save, Search, Trash2 } from "lucide-react";
 import { useEditorStore } from "../store/editorStore";
 import { behaviorTreeToXml, createNodeFromDefinition, parseBehaviorTree, parseNodeRegistry } from "../domain/xml";
-import { generateCpp } from "../domain/cpp";
 import { validateTree } from "../domain/validate";
 import { generateDebugTrace } from "../domain/debug";
 import type { BehaviorNode, DebugStatus, NodeDefinition } from "../domain/types";
@@ -110,7 +109,7 @@ function Header() {
   };
 
   const loadRegistry = async () => {
-    const result = await window.brainApi?.openTextFile();
+    const result = await window.brainApi?.openNodeDefinitionFile();
     if (!result) return;
     mergeDefinitions(parseNodeRegistry(result.content));
   };
@@ -478,7 +477,6 @@ function PreviewPanel() {
   const [panelHeight, setPanelHeight] = useState(270);
   const dragState = useRef<{ startY: number; startHeight: number } | null>(null);
   const xml = tree ? behaviorTreeToXml(tree, definitions) : "";
-  const cpp = tree ? generateCpp(tree, definitions) : "";
   const issues = tree ? validateTree(tree, definitions) : [];
   const trace = tree ? generateDebugTrace(tree.root, definitions, debugStatusOverrides) : [];
 
@@ -518,7 +516,6 @@ function PreviewPanel() {
         </button>
         <div className="preview-tabs">
           <button className={activePreview === "xml" ? "active" : ""} onClick={() => { setActivePreview("xml"); setExpanded(true); }}>XML</button>
-          <button className={activePreview === "cpp" ? "active" : ""} onClick={() => { setActivePreview("cpp"); setExpanded(true); }}>C++</button>
           <button className={activePreview === "issues" ? "active" : ""} onClick={() => { setActivePreview("issues"); setExpanded(true); }}>校验 {issues.length}</button>
           <button className={activePreview === "debug" ? "active" : ""} onClick={() => { setActivePreview("debug"); setExpanded(true); }}>调试 {trace.length}</button>
         </div>
@@ -526,7 +523,6 @@ function PreviewPanel() {
       {expanded && (
         <div className="preview-body">
           {activePreview === "xml" && <pre>{xml}</pre>}
-          {activePreview === "cpp" && <pre>{cpp}</pre>}
           {activePreview === "issues" && (
             <div className="issues">
               {issues.length === 0 ? (

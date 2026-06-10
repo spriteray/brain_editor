@@ -4,10 +4,10 @@ Behavior tree editor for `engine::brain`.
 
 ## First Version Scope
 
-- Load one node definition file: `config/brain_nodes.xml`
+- Load node definition XML files from `config/*.xml`
 - Edit behavior tree XML files
 - Validate child-count and parameter types
-- Preview generated `engine::brain::Builder` C++ code
+- Preview XML, validate behavior trees, and simulate debug execution order
 - Package as a Windows zip for designers
 
 ## Development
@@ -29,12 +29,21 @@ The package is written to `release/`.
 
 ## Files
 
-- `config/brain_nodes.xml`: the single node metadata source
-- `examples/monster_attack.xml`: sample behavior tree
+- `config/*.xml`: node metadata files. Files with `BrainNodeRegistry` root are merged.
+- `config/behaviors/*.xml`: behavior tree XML files
+- `examples/monster_attack.xml`: sample behavior tree copy
 - `src/domain/xml.ts`: XML parser and serializer
-- `src/domain/cpp.ts`: C++ Builder code generator
 - `src/domain/validate.ts`: editor validation rules
+- `tools/brain_codegen/brain_codegen.py`: optional Python3 codegen script to copy into the C++ project
 
 ## Runtime Model
 
-Use generated C++ as the default runtime path. Use behavior tree XML for hot update or tuning. New C++ leaf node types still need a server code release and a corresponding entry in `brain_nodes.xml`.
+The editor only edits XML. In the C++ project, copy/adapt `tools/brain_codegen/brain_codegen.py` to generate compile-time behavior tree Builder code from `config/behaviors/*.xml`. Runtime hot update can still load the same XML files with a rapidxml-based loader. Node implementations and node registration remain hand-written in C++.
+
+Example:
+
+```powershell
+python tools/brain_codegen/brain_codegen.py `
+  --config config `
+  --out generated/behaviors
+```

@@ -45,6 +45,7 @@
       "config/**/*",
       "templates/**/*",
       "examples/**/*",
+      "tools/**/*",
       "package.json"
     ],
     "win": {

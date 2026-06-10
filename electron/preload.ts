@@ -6,6 +6,8 @@ const api = {
     ipcRenderer.invoke("file:writeText", filePath, content),
   openTextFile: (): Promise<{ filePath: string; content: string } | null> =>
     ipcRenderer.invoke("file:openText"),
+  openNodeDefinitionFile: (): Promise<{ filePath: string; content: string } | null> =>
+    ipcRenderer.invoke("dialog:openNodeDefinition"),
   saveTextFile: (
     defaultPath: string,
     content: string,
