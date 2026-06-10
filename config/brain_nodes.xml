@@ -1,69 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BrainNodeRegistry version="1">
-  <Node name="Sequence" category="Composite" cpp="Sequence" folder="基础控制/流程">
+  <Node name="Sequence" category="Composite" cpp="Sequence" construct="class" folder="基础控制/流程">
     <DisplayName>顺序节点</DisplayName>
     <Description>子节点依次执行，全部成功才成功。</Description>
     <Children min="1" max="*" />
     <Param name="stateful" type="bool" default="0" order="1" displayName="记忆执行位置" />
   </Node>
 
-  <Node name="Selector" category="Composite" cpp="Selector" folder="基础控制/流程">
+  <Node name="Selector" category="Composite" cpp="Selector" construct="class" folder="基础控制/流程">
     <DisplayName>选择节点</DisplayName>
     <Description>子节点依次执行，任意成功即成功。</Description>
     <Children min="1" max="*" />
     <Param name="stateful" type="bool" default="0" order="1" displayName="记忆执行位置" />
   </Node>
 
-  <Node name="Parallel" category="Composite" cpp="Parallel" folder="基础控制/流程">
+  <Node name="Parallel" category="Composite" cpp="Parallel" construct="class" folder="基础控制/流程">
     <DisplayName>并行节点</DisplayName>
     <Children min="1" max="*" />
     <Param name="failPolicy" type="enum" default="FAILED_ON_ALL" order="1" displayName="失败策略" values="FAILED_ON_ONE,FAILED_ON_ALL" />
     <Param name="successPolicy" type="enum" default="SUCCEED_ON_ALL" order="2" displayName="成功策略" values="SUCCEED_ON_ONE,SUCCEED_ON_ALL" />
   </Node>
 
-  <Node name="Priority" category="Composite" cpp="Priority" folder="基础控制/流程">
+  <Node name="Priority" category="Composite" cpp="Priority" construct="class" folder="基础控制/流程">
     <DisplayName>优先级节点</DisplayName>
     <Children min="1" max="*" />
   </Node>
 
-  <Node name="IfElse" category="Composite" cpp="IfElse" folder="基础控制/分支">
+  <Node name="IfElse" category="Composite" cpp="IfElse" construct="class" folder="基础控制/分支">
     <DisplayName>条件分支</DisplayName>
     <Children min="3" max="3" />
   </Node>
 
-  <Node name="Inverter" category="Decorator" cpp="Inverter" folder="基础控制/修饰">
+  <Node name="Inverter" category="Decorator" cpp="Inverter" construct="class" folder="基础控制/修饰">
     <DisplayName>结果取反</DisplayName>
     <Children min="1" max="1" />
   </Node>
 
-  <Node name="Repeater" category="Decorator" cpp="Repeater" folder="基础控制/修饰">
+  <Node name="Repeater" category="Decorator" cpp="Repeater" construct="class" folder="基础控制/修饰">
     <DisplayName>重复执行</DisplayName>
     <Children min="1" max="1" />
     <Param name="limit" type="int" default="0" order="1" displayName="次数限制" />
   </Node>
 
-  <Node name="Duration" category="Decorator" cpp="Duration" folder="基础控制/修饰">
+  <Node name="Duration" category="Decorator" cpp="Duration" construct="class" folder="基础控制/修饰">
     <DisplayName>持续时间</DisplayName>
     <Children min="1" max="1" />
     <Param name="duration" type="int" default="1000" order="1" displayName="毫秒" />
   </Node>
 
-  <Node name="Runner" category="Decorator" cpp="Runner" folder="基础控制/修饰">
+  <Node name="Runner" category="Decorator" cpp="Runner" construct="class" folder="基础控制/修饰">
     <DisplayName>强制执行中</DisplayName>
     <Children min="1" max="1" />
   </Node>
 
-  <Node name="Succeeder" category="Decorator" cpp="Succeeder" folder="基础控制/修饰">
+  <Node name="Succeeder" category="Decorator" cpp="Succeeder" construct="class" folder="基础控制/修饰">
     <DisplayName>强制成功</DisplayName>
     <Children min="1" max="1" />
   </Node>
 
-  <Node name="Failer" category="Decorator" cpp="Failer" folder="基础控制/修饰">
+  <Node name="Failer" category="Decorator" cpp="Failer" construct="class" folder="基础控制/修饰">
     <DisplayName>强制失败</DisplayName>
     <Children min="1" max="1" />
   </Node>
 
-  <Node name="Noop" category="Leaf" cpp="Noop" folder="基础控制/修饰">
+  <Node name="Noop" category="Leaf" cpp="Noop" construct="class" folder="基础控制/修饰">
     <DisplayName>空行为</DisplayName>
     <Children min="0" max="0" />
   </Node>

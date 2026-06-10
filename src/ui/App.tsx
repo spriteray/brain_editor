@@ -419,7 +419,7 @@ function PropertyPanel() {
         <span className={`node-kind ${definition.category.toLowerCase()}`}>{definition.category}</span>
         <div>
           <strong>{definition.displayName}</strong>
-          <small>{definition.cpp}</small>
+          <small>{definition.cpp} · {definition.construct}</small>
         </div>
       </div>
       <div className="param-list">

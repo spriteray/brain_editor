@@ -45,6 +45,10 @@ The editor only edits XML. In the C++ project, copy/adapt `tools/brain_codegen/b
 
 Runtime hot update can load the same XML files with `tools/brain_codegen/runtime/brain_loader.h/.cpp`.
 Node implementations remain hand-written in C++, while node registration and tree construction are generated or loaded from XML.
+Leaf nodes support two construction modes in node definition XML:
+
+- `construct="class"`: generated registry uses `new NodeType(...)`; compile-time tree code uses `node<NodeType>(...)`
+- `construct="static"`: generated registry uses `Leaf::create<NodeType>()`; compile-time tree code uses `leaf<NodeType>()`
 
 Example:
 

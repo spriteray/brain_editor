@@ -1,5 +1,6 @@
 export type NodeCategory = "Composite" | "Decorator" | "Leaf";
 export type ParamType = "bool" | "int" | "float" | "string" | "enum";
+export type NodeConstruct = "class" | "static";
 
 export interface NodeParamDefinition {
   name: string;
@@ -19,6 +20,7 @@ export interface NodeDefinition {
   name: string;
   cpp: string;
   category: NodeCategory;
+  construct: NodeConstruct;
   folder: string;
   displayName: string;
   description?: string;

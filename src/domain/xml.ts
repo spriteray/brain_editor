@@ -1,4 +1,4 @@
-import type { BehaviorNode, BehaviorTree, NodeDefinition, NodeParamDefinition, NodeCategory } from "./types";
+import type { BehaviorNode, BehaviorTree, NodeDefinition, NodeParamDefinition, NodeCategory, NodeConstruct } from "./types";
 
 const BUILTIN_LEAF_TAG = "Leaf";
 
@@ -46,6 +46,7 @@ export function parseNodeRegistry(xml: string): NodeDefinition[] {
     return {
       name: attr(element, "name"),
       category: attr(element, "category") as NodeCategory,
+      construct: attr(element, "construct", "class") as NodeConstruct,
       folder: attr(element, "folder", attr(element, "category", "未分类")),
       cpp: attr(element, "cpp", attr(element, "name")),
       displayName: displayName || attr(element, "name"),

@@ -31,6 +31,7 @@ class NodeDef:
     name: str
     cpp: str
     category: str
+    construct: str
     params: list[ParamDef]
 
 
@@ -61,6 +62,7 @@ def parse_node_defs(path: Path) -> dict[str, NodeDef]:
             name=name,
             cpp=elem.attrib.get("cpp", name),
             category=elem.attrib["category"],
+            construct=elem.attrib.get("construct", "class"),
             params=params,
         )
     return nodes
@@ -155,12 +157,22 @@ def node_args(elem: ET.Element, node_def: NodeDef) -> str:
     return ", ".join(args)
 
 
+def validate_construct(node_def: NodeDef) -> None:
+    if node_def.construct not in ("class", "static"):
+        raise ValueError(f"Unsupported construct {node_def.construct} for node {node_def.name}")
+    if node_def.construct == "static" and node_def.category != "Leaf":
+        raise ValueError(f"Static construct is only supported for Leaf node: {node_def.name}")
+    if node_def.construct == "static" and node_def.params:
+        raise ValueError(f"Static Leaf node cannot define constructor params: {node_def.name}")
+
+
 def emit_node(elem: ET.Element, nodes: dict[str, NodeDef], depth: int, lines: list[str]) -> None:
     name = node_type(elem)
     if name not in nodes:
         raise ValueError(f"Unknown node type: {name}")
 
     node_def = nodes[name]
+    validate_construct(node_def)
     indent = "    " * depth
     args = node_args(elem, node_def)
     call_args = f"({args})" if args else "()"
@@ -180,7 +192,10 @@ def emit_node(elem: ET.Element, nodes: dict[str, NodeDef], depth: int, lines: li
     elif node_def.category == "Leaf":
         if list(elem):
             raise ValueError(f"Leaf node {name} cannot have children.")
-        lines.append(f"{indent}.leaf<{node_def.cpp}>{call_args}")
+        if node_def.construct == "static":
+            lines.append(f"{indent}.leaf<{node_def.cpp}>()")
+        else:
+            lines.append(f"{indent}.node<{node_def.cpp}>{call_args}")
     else:
         raise ValueError(f"Unsupported category {node_def.category} for node {name}")
 
@@ -272,13 +287,16 @@ def generate_registry(nodes: dict[str, NodeDef], registry_type: str, include: st
     ]
 
     for node in sorted(nodes.values(), key=lambda item: item.name):
+        validate_construct(node)
         args = [registry_arg_expr(param) for param in node.params]
         lines.extend(
             [
                 f"    registry.reg( \"{node.name}\", [] ( engine::XmlNode * root ) -> Node * {{",
             ]
         )
-        if args:
+        if node.construct == "static":
+            lines.append(f"        return Leaf::create<{node.cpp}>();")
+        elif args:
             joined_args = ",\n".join(f"            {arg}" for arg in args)
             lines.extend(
                 [
