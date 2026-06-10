@@ -31,7 +31,6 @@ The package is written to `release/`.
 
 - `config/*.xml`: node metadata files. Files with `BrainNodeRegistry` root are merged.
 - `config/behaviors/*.xml`: behavior tree XML files
-- `examples/monster_attack.xml`: sample behavior tree copy
 - `src/domain/xml.ts`: XML parser and serializer
 - `src/domain/validate.ts`: editor validation rules
 - `tools/brain_codegen/brain_codegen.py`: optional Python3 codegen script to copy into the C++ project
