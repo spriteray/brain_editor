@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, FileCode2, FolderOpen, Plus, Save, Search, Trash2 } from "lucide-react";
 import { useEditorStore } from "../store/editorStore";
 import { behaviorTreeToXml, createNodeFromDefinition, parseBehaviorTree, parseNodeRegistry } from "../domain/xml";
@@ -35,6 +35,20 @@ function findParentIds(root: BehaviorNode | null | undefined, id: string | null)
 
 function findChildIds(node: BehaviorNode | null): Set<string> {
   return new Set(node?.children.map((child) => child.id) ?? []);
+}
+
+function findDescendantIds(node: BehaviorNode | null): Set<string> {
+  const ids = new Set<string>();
+
+  function visit(current: BehaviorNode) {
+    for (const child of current.children) {
+      ids.add(child.id);
+      visit(child);
+    }
+  }
+
+  if (node) visit(node);
+  return ids;
 }
 
 function groupDefinitions(definitions: NodeDefinition[]) {
@@ -255,6 +269,7 @@ function TreeNodeView({
   collapsedNodeIds,
   parentHighlightIds,
   childHighlightIds,
+  subtreeHighlightIds,
   onToggle
 }: {
   node: BehaviorNode;
@@ -262,6 +277,7 @@ function TreeNodeView({
   collapsedNodeIds: Set<string>;
   parentHighlightIds: Set<string>;
   childHighlightIds: Set<string>;
+  subtreeHighlightIds: Set<string>;
   onToggle: (id: string) => void;
 }) {
   const { definitions, selectedNodeId, selectNode, removeNode, moveNode } = useEditorStore();
@@ -269,20 +285,31 @@ function TreeNodeView({
   const selected = selectedNodeId === node.id;
   const isParentHighlight = parentHighlightIds.has(node.id);
   const isChildHighlight = childHighlightIds.has(node.id);
+  const isSubtreeHighlight = subtreeHighlightIds.has(node.id);
   const hasChildren = node.children.length > 0;
   const collapsed = collapsedNodeIds.has(node.id);
+  const paramSummary = definition?.params
+    .map((param) => {
+      const value = node.params[param.name];
+      return value === undefined || value === "" ? "" : `${param.name}=${value}`;
+    })
+    .filter(Boolean)
+    .join("  ");
   const className = [
     "tree-node",
+    `kind-${definition?.category.toLowerCase() ?? "unknown"}`,
+    depth === 0 ? "root-depth" : "",
     selected ? "selected" : "",
     isParentHighlight ? "parent-highlight" : "",
-    isChildHighlight ? "child-highlight" : ""
+    isChildHighlight ? "child-highlight" : "",
+    isSubtreeHighlight ? "subtree-highlight" : ""
   ].filter(Boolean).join(" ");
 
   return (
-    <div className="tree-node-wrap">
+    <div className={`tree-node-wrap ${isSubtreeHighlight ? "subtree-wrap" : ""}`}>
       <div
         className={className}
-        style={{ marginLeft: depth * 22 }}
+        style={{ "--depth": depth } as CSSProperties}
         onClick={() => selectNode(node.id)}
       >
         <button
@@ -300,6 +327,7 @@ function TreeNodeView({
         <div className="node-main">
           <strong>{definition?.displayName ?? node.type}</strong>
           <span>{node.type}</span>
+          {paramSummary && <em>{paramSummary}</em>}
         </div>
         <div className="node-actions">
           <button onClick={(event) => { event.stopPropagation(); moveNode(node.id, -1); }} title="上移">
@@ -321,6 +349,7 @@ function TreeNodeView({
           collapsedNodeIds={collapsedNodeIds}
           parentHighlightIds={parentHighlightIds}
           childHighlightIds={childHighlightIds}
+          subtreeHighlightIds={subtreeHighlightIds}
           onToggle={onToggle}
         />
       ))}
@@ -337,6 +366,7 @@ function TreePanel() {
   const selectedNode = findNode(tree?.root, selectedNodeId);
   const parentHighlightIds = findParentIds(tree?.root, selectedNodeId);
   const childHighlightIds = findChildIds(selectedNode);
+  const subtreeHighlightIds = findDescendantIds(selectedNode);
 
   const newTree = () => {
     const rootDef = definitions.find((definition) => definition.name === "Sequence") ?? definitions[0];
@@ -374,6 +404,7 @@ function TreePanel() {
             collapsedNodeIds={collapsedNodeIds}
             parentHighlightIds={parentHighlightIds}
             childHighlightIds={childHighlightIds}
+            subtreeHighlightIds={subtreeHighlightIds}
             onToggle={toggleNode}
           />
         ) : (
