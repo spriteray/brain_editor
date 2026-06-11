@@ -5,7 +5,7 @@ import { behaviorTreeToXml, createNodeFromDefinition, parseBehaviorTree, parseNo
 import { validateTree } from "../domain/validate";
 import { generateDebugTrace } from "../domain/debug";
 import type { BehaviorNode, DebugStatus, NodeDefinition } from "../domain/types";
-import defaultRegistryXml from "../assets/default_brain_nodes.xml?raw";
+import defaultRegistryXml from "../assets/default_nodes.xml?raw";
 
 function findNode(root: BehaviorNode | null | undefined, id: string | null): BehaviorNode | null {
   if (!root || !id) return null;
@@ -569,7 +569,7 @@ export function App() {
 
     async function loadNodeRegistry() {
       try {
-        const xml = await window.brainApi?.readAssetText("config/brain_nodes.xml").catch(() => defaultRegistryXml);
+        const xml = await window.brainApi?.readAssetText("config/nodes.xml").catch(() => defaultRegistryXml);
         if (!canceled) setBaseDefinitions(parseNodeRegistry(xml ?? defaultRegistryXml));
       } catch (error) {
         if (!canceled) {

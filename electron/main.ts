@@ -55,7 +55,7 @@ ipcMain.handle("file:writeText", async (_event, filePath: string, content: strin
 
 ipcMain.handle("file:openText", async () => {
   const result = await dialog.showOpenDialog({
-    defaultPath: resolveAsset("config/behaviors"),
+    defaultPath: resolveAsset("config/trees"),
     filters: [{ name: "XML", extensions: ["xml"] }],
     properties: ["openFile"]
   });
@@ -68,7 +68,7 @@ ipcMain.handle(
   "file:saveText",
   async (_event, defaultPath: string, content: string, filters?: Electron.FileFilter[]) => {
   const result = await dialog.showSaveDialog({
-    defaultPath: path.isAbsolute(defaultPath) ? defaultPath : resolveAsset(path.join("config/behaviors", defaultPath)),
+    defaultPath: path.isAbsolute(defaultPath) ? defaultPath : resolveAsset(path.join("config/trees", defaultPath)),
     filters: filters ?? [{ name: "XML", extensions: ["xml"] }]
   });
   if (result.canceled || !result.filePath) return null;

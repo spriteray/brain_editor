@@ -217,7 +217,7 @@ def generate_behavior_cpp(behavior_xml: Path, nodes: dict[str, NodeDef], include
     if chain:
         chain[-1] += ";"
 
-    header_name = f"{symbol}.h"
+    header_name = f"{symbol}.hpp"
     cpp_name = f"{symbol}.cpp"
     function_name = f"create_{symbol}_tree"
     guard = include_guard(header_name)
@@ -258,8 +258,8 @@ def generate_behavior_cpp(behavior_xml: Path, nodes: dict[str, NodeDef], include
 
 
 def generate_registry(nodes: dict[str, NodeDef], registry_type: str, include: str) -> tuple[str, str]:
-    guard = include_guard("brain_nodes.h")
-    function_name = "register_brain_nodes"
+    guard = include_guard("nodes.hpp")
+    function_name = "register_nodes"
     header = "\n".join(
         [
             f"#ifndef {guard}",
@@ -275,7 +275,7 @@ def generate_registry(nodes: dict[str, NodeDef], registry_type: str, include: st
     )
 
     lines = [
-        '#include "brain_nodes.h"',
+        '#include "nodes.hpp"',
         '#include "engine/game/brain.h"',
         '#include "engine/utils/xmldocument.h"',
         include,
@@ -328,38 +328,38 @@ def main() -> int:
         "--out",
         type=Path,
         default=Path("generated"),
-        help="Generated C++ output directory. Behavior tree files are written to <out>/behaviors.",
+        help="Generated C++ output directory. Tree files are written to <out>/trees.",
     )
     parser.add_argument("--registry-type", default="engine::brain::Registry")
     parser.add_argument(
         "--include",
-        default='// TODO: include your game behavior node headers here',
+        default='#include "brain_node_includes.h"',
         help="Extra include line written to generated .cpp files.",
     )
     args = parser.parse_args()
 
     nodes = load_node_defs(args.config, args.nodes)
-    behaviors_out = args.out / "behaviors"
+    trees_out = args.out / "trees"
     args.out.mkdir(parents=True, exist_ok=True)
-    behaviors_out.mkdir(parents=True, exist_ok=True)
+    trees_out.mkdir(parents=True, exist_ok=True)
 
     registry_header, registry_cpp = generate_registry(nodes, args.registry_type, args.include)
-    (args.out / "brain_nodes.h").write_text(registry_header, encoding="utf-8")
-    (args.out / "brain_nodes.cpp").write_text(registry_cpp, encoding="utf-8")
-    print(f"generated {args.out / 'brain_nodes.h'}")
-    print(f"generated {args.out / 'brain_nodes.cpp'}")
+    (args.out / "nodes.hpp").write_text(registry_header, encoding="utf-8")
+    (args.out / "nodes.cpp").write_text(registry_cpp, encoding="utf-8")
+    print(f"generated {args.out / 'nodes.hpp'}")
+    print(f"generated {args.out / 'nodes.cpp'}")
 
-    behaviors_dir = args.config / "behaviors"
-    behavior_files = sorted(behaviors_dir.glob("*.xml"))
+    trees_dir = args.config / "trees"
+    behavior_files = sorted(trees_dir.glob("*.xml"))
     if not behavior_files:
-        raise SystemExit(f"No behavior XML files found in {behaviors_dir}")
+        raise SystemExit(f"No tree XML files found in {trees_dir}")
 
     for behavior_xml in behavior_files:
         header_name, header, cpp_name, cpp = generate_behavior_cpp(behavior_xml, nodes, args.include)
-        (behaviors_out / header_name).write_text(header, encoding="utf-8")
-        (behaviors_out / cpp_name).write_text(cpp, encoding="utf-8")
-        print(f"generated {behaviors_out / header_name}")
-        print(f"generated {behaviors_out / cpp_name}")
+        (trees_out / header_name).write_text(header, encoding="utf-8")
+        (trees_out / cpp_name).write_text(cpp, encoding="utf-8")
+        print(f"generated {trees_out / header_name}")
+        print(f"generated {trees_out / cpp_name}")
 
     return 0
 

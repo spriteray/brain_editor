@@ -37,18 +37,19 @@ The package is written to `release/`.
 ## Files
 
 - `config/*.xml`: node metadata files. Files with `BrainNodeRegistry` root are merged.
-- `config/behaviors/*.xml`: behavior tree XML files
+- `config/trees/*.xml`: behavior tree XML files
 - `src/domain/xml.ts`: XML parser and serializer
 - `src/domain/validate.ts`: editor validation rules
 - `tools/brain_codegen/brain_codegen.py`: optional Python3 codegen script to copy into the C++ project
 - `tools/brain_codegen/runtime/brain_loader.h/.cpp`: optional rapidxml runtime tree loader template
+- `templates/brain_node_includes.h`: project-side aggregate include template for behavior node headers
 
 ## Runtime Model
 
 The editor only edits XML. In the C++ project, copy/adapt `tools/brain_codegen/brain_codegen.py` to generate:
 
-- `brain_nodes.h/.cpp`: node registration code from `config/*.xml`
-- `behaviors/*.h/.cpp`: compile-time behavior tree Builder code from `config/behaviors/*.xml`
+- `nodes.hpp/.cpp`: node registration code from `config/*.xml`
+- `trees/*.hpp/.cpp`: compile-time behavior tree Builder code from `config/trees/*.xml`
 
 Runtime hot update can load the same XML files with `tools/brain_codegen/runtime/brain_loader.h/.cpp`.
 Node implementations remain hand-written in C++, while node registration and tree construction are generated or loaded from XML.
@@ -56,6 +57,8 @@ Leaf nodes support two construction modes in node definition XML:
 
 - `construct="class"`: generated registry uses `new NodeType(...)`; compile-time tree code uses `node<NodeType>(...)`
 - `construct="static"`: generated registry uses `Leaf::create<NodeType>()`; compile-time tree code uses `leaf<NodeType>()`
+
+Generated `.cpp` files include `brain_node_includes.h` by default. Keep project behavior node headers in that aggregate file, or override it with `--include`.
 
 Example:
 
