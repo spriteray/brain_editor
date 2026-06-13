@@ -163,6 +163,7 @@ function NodeLibrary() {
   const definitions = useEditorStore((state) => state.definitions);
   const tree = useEditorStore((state) => state.tree);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
+  const setTree = useEditorStore((state) => state.setTree);
   const addChild = useEditorStore((state) => state.addChild);
   const [query, setQuery] = useState("");
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => new Set());
@@ -183,6 +184,7 @@ function NodeLibrary() {
   const rootFolder = useMemo(() => groupDefinitions(filteredDefinitions), [filteredDefinitions]);
   const selected = findNode(tree?.root, selectedNodeId);
   const accepts = selected ? canAcceptChild(selected, definitions) : false;
+  const canCreateRoot = !tree;
   const isSearching = query.trim().length > 0;
 
   useEffect(() => {
@@ -204,9 +206,15 @@ function NodeLibrary() {
     <button
       key={definition.name}
       className="library-node"
-      disabled={!selected || !accepts}
-      onClick={() => selected && addChild(selected.id, definition)}
-      title={definition.description || definition.name}
+      disabled={!canCreateRoot && (!selected || !accepts)}
+      onClick={() => {
+        if (canCreateRoot) {
+          setTree({ name: "NewBehaviorTree", root: createNodeFromDefinition(definition) });
+          return;
+        }
+        if (selected) addChild(selected.id, definition);
+      }}
+      title={canCreateRoot ? `创建根节点：${definition.displayName}` : definition.description || definition.name}
     >
       <span>{definition.displayName}</span>
       <small>{definition.name}</small>
@@ -359,9 +367,8 @@ function TreeNodeView({
 
 function TreePanel() {
   const tree = useEditorStore((state) => state.tree);
-  const definitions = useEditorStore((state) => state.definitions);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
-  const setTree = useEditorStore((state) => state.setTree);
+  const clearTree = useEditorStore((state) => state.clearTree);
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
   const selectedNode = findNode(tree?.root, selectedNodeId);
   const parentHighlightIds = findParentIds(tree?.root, selectedNodeId);
@@ -369,9 +376,7 @@ function TreePanel() {
   const subtreeHighlightIds = findDescendantIds(selectedNode);
 
   const newTree = () => {
-    const rootDef = definitions.find((definition) => definition.name === "Sequence") ?? definitions[0];
-    if (!rootDef) return;
-    setTree({ name: "NewBehaviorTree", root: createNodeFromDefinition(rootDef) });
+    clearTree();
     setCollapsedNodeIds(new Set());
   };
 
@@ -410,11 +415,7 @@ function TreePanel() {
         ) : (
           <div className="empty-tree">
             <strong>未打开行为树</strong>
-            <span>可以打开已有 XML，或新建一棵树。</span>
-            <button onClick={newTree} title="新建行为树">
-              <Plus size={16} />
-              新建行为树
-            </button>
+            <span>从左侧节点库选择一个节点作为根节点。</span>
           </div>
         )}
       </div>

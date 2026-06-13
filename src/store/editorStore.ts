@@ -13,6 +13,7 @@ interface EditorState {
   setBaseDefinitions: (definitions: NodeDefinition[]) => void;
   mergeDefinitions: (definitions: NodeDefinition[]) => void;
   setTree: (tree: BehaviorTree) => void;
+  clearTree: () => void;
   selectNode: (id: string) => void;
   setActivePreview: (preview: EditorState["activePreview"]) => void;
   setTreeName: (name: string) => void;
@@ -72,6 +73,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       };
     }),
   setTree: (tree) => set({ tree, selectedNodeId: tree.root.id, debugStatusOverrides: {} }),
+  clearTree: () => set({ tree: null, selectedNodeId: null, debugStatusOverrides: {} }),
   selectNode: (id) => set({ selectedNodeId: id }),
   setActivePreview: (activePreview) => set({ activePreview }),
   setTreeName: (name) => set((state) => ({ tree: state.tree ? { ...state.tree, name } : state.tree })),
