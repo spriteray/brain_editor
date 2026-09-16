@@ -1,0 +1,104 @@
+--- a/engine/src/game/brain.cpp
++++ b/engine/src/game/brain.cpp
+@@ -80,13 +80,15 @@
+ {
+     return c->has( m_Type ) ? Status::Success : Status::Running;
+ }
+ 
+-bool Loader::is_element( engine::XmlNode * node ) {
++namespace {
++
++bool is_element( engine::XmlNode * node ) {
+     return node != nullptr && node->type() == rapidxml::node_element;
+ }
+ 
+-std::string Loader::node_name( engine::XmlNode * node ) {
++std::string node_name( engine::XmlNode * node ) {
+     if ( node == nullptr ) return "";
+ 
+     std::string tag( node->name(), node->name_size() );
+     if ( tag == "Leaf" ) {
+@@ -94,34 +96,40 @@
+     }
+     return tag;
+ }
+ 
+-engine::XmlNode * Loader::first_element( engine::XmlNode * node ) {
++engine::XmlNode * first_element( engine::XmlNode * node ) {
+     if ( node == nullptr ) return nullptr;
+     for ( auto child = node->first_node(); child; child = child->next_sibling() ) {
+         if ( is_element( child ) ) return child;
+     }
+     return nullptr;
+ }
+ 
+-uint32_t Loader::element_child_count( engine::XmlNode * node ) {
++uint32_t element_child_count( engine::XmlNode * node ) {
+     uint32_t count = 0;
+     if ( node == nullptr ) return count;
+     for ( auto child = node->first_node(); child; child = child->next_sibling() ) {
+         if ( is_element( child ) ) ++count;
+     }
+     return count;
+ }
+ 
+-Node * Loader::load_node( engine::XmlNode * xml, const Registry & registry, uint32_t & nextid )
++Node * load_node( engine::XmlNode * xml, const Registry & registry, uint32_t & nextid )
+ {
+     if ( !is_element( xml ) ) {
+         return nullptr;
+     }
+ 
+     auto name = node_name( xml );
+     if ( name.empty() ) {
+         return nullptr;
++    }
++
++    // SubTree is an editor-only group. Expand it without allocating a node ID.
++    if ( name == "SubTree" ) {
++        if ( element_child_count( xml ) != 1 ) return nullptr;
++        return load_node( first_element( xml ), registry, nextid );
+     }
+ 
+     auto node = registry.create( name, xml );
+     if ( node == nullptr ) {
+@@ -167,9 +175,9 @@
+ 
+     return node;
+ }
+ 
+-engine::XmlNode * Loader::behavior_root( engine::XmlNode * root ) {
++engine::XmlNode * behavior_root( engine::XmlNode * root ) {
+     if ( root == nullptr ) return nullptr;
+     if ( !is_element( root ) ) return first_element( root );
+ 
+     std::string tag( root->name(), root->name_size() );
+@@ -177,8 +185,10 @@
+         return first_element( root );
+     }
+     return root;
+ }
++
++} // namespace
+ 
+ Tree * Loader::load( engine::XmlNode * root, const Registry & registry ) {
+     auto behavior = behavior_root( root );
+     if ( behavior == nullptr ) {
+--- a/engine/include/engine/game/brain.h
++++ b/engine/include/engine/game/brain.h
+@@ -397,15 +397,8 @@
+ struct Loader {
+     static Tree * load( const char * path, const Registry & registry );
+     static Tree * load( engine::XmlNode * root, const Registry & registry );
+ 
+-private :
+-    static bool is_element( engine::XmlNode * node );
+-    static std::string node_name( engine::XmlNode * node );
+-    static engine::XmlNode * first_element( engine::XmlNode * node );
+-    static uint32_t element_child_count( engine::XmlNode * node );
+-    static Node * load_node( engine::XmlNode * xml, const Registry & registry, uint32_t & nextid );
+-    static engine::XmlNode * behavior_root( engine::XmlNode * root );
+ };
+ 
+ ////////////////////////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////////////////////////

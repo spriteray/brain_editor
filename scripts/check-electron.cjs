@@ -1,23 +1,14 @@
-const fs = require("node:fs");
-const path = require("node:path");
-
-const electronDir = path.join(__dirname, "..", "node_modules", "electron");
-const pathTxt = path.join(electronDir, "path.txt");
-const exe = path.join(electronDir, "dist", "electron.exe");
-
-const ok = fs.existsSync(pathTxt) && fs.existsSync(exe);
-
-if (ok) {
-  console.log("Electron binary is ready.");
-  process.exit(0);
+const fs = require('node:fs');
+const path = require('node:path');
+const electronDir = path.dirname(require.resolve('electron/package.json'));
+const marker = path.join(electronDir, 'path.txt');
+let executable;
+try {
+  const relativePath = fs.readFileSync(marker, 'utf8').trim();
+  executable = path.join(electronDir, 'dist', relativePath);
+  if (!relativePath || !fs.existsSync(executable)) throw new Error('Missing Electron executable.');
+} catch {
+  console.error('Electron binary is incomplete. Run npm run install:electron to download it again.');
+  process.exit(1);
 }
-
-console.error("Electron binary is incomplete.");
-console.error(`Missing path.txt: ${!fs.existsSync(pathTxt)}`);
-console.error(`Missing electron.exe: ${!fs.existsSync(exe)}`);
-console.error("");
-console.error("Try:");
-console.error('$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"');
-console.error('$env:npm_config_electron_mirror="https://npmmirror.com/mirrors/electron/"');
-console.error("node .\\node_modules\\electron\\install.js");
-process.exit(1);
+console.log(`Electron ${require('electron/package.json').version} binary is ready: ${executable}`);

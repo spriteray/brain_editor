@@ -40,3 +40,7 @@ Desktop.ini
 
 # TypeScript incremental state
 *.tsbuildinfo
+
+# Local verification and Python caches
+.tmp-verification/
+__pycache__/

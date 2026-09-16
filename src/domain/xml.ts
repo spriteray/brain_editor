@@ -82,7 +82,7 @@ function parseBehaviorNode(element: Element): BehaviorNode {
   const params: Record<string, string> = {};
 
   for (const attribute of Array.from(element.attributes)) {
-    if (attribute.name !== "type") {
+    if (!isLeaf || attribute.name !== "type") {
       params[attribute.name] = attribute.value;
     }
   }
@@ -105,7 +105,9 @@ export function parseBehaviorTree(xml: string): BehaviorTree {
 
   const tree = doc.querySelector("BehaviorTree");
   if (!tree) throw new Error("Missing BehaviorTree root.");
-  const rootElement = childElements(tree).find((child) => child.tagName !== "Param");
+  const roots = childElements(tree).filter((child) => child.tagName !== "Param");
+  if (roots.length !== 1) throw new Error("BehaviorTree requires exactly one root.");
+  const rootElement = roots[0];
   if (!rootElement) throw new Error("BehaviorTree has no root node.");
 
   return {
@@ -122,7 +124,11 @@ function escapeXml(value: string) {
     .replace(/>/g, "&gt;");
 }
 
-function nodeToXml(node: BehaviorNode, registry: Map<string, NodeDefinition>, depth: number): string {
+function nodeToXml(node: BehaviorNode, registry: Map<string, NodeDefinition>, depth: number, runtime = false): string {
+  if (runtime && node.type === "SubTree") {
+    if (node.children.length !== 1) throw new Error("SubTree requires exactly one root.");
+    return nodeToXml(node.children[0], registry, depth, true);
+  }
   const definition = registry.get(node.type);
   const indent = "  ".repeat(depth);
   const params = definition?.params ?? [];
@@ -146,16 +152,16 @@ function nodeToXml(node: BehaviorNode, registry: Map<string, NodeDefinition>, de
     return `${indent}${open.replace(/>$/, " />")}`;
   }
 
-  const children = node.children.map((child) => nodeToXml(child, registry, depth + 1)).join("\n");
+  const children = node.children.map((child) => nodeToXml(child, registry, depth + 1, runtime)).join("\n");
   return `${indent}${open}\n${children}\n${indent}</${tag}>`;
 }
 
-export function behaviorTreeToXml(tree: BehaviorTree, definitions: NodeDefinition[]) {
+export function behaviorTreeToXml(tree: BehaviorTree, definitions: NodeDefinition[], runtime = false) {
   const registry = new Map(definitions.map((definition) => [definition.name, definition]));
   return [
     `<?xml version="1.0" encoding="utf-8"?>`,
     `<BehaviorTree name="${escapeXml(tree.name)}">`,
-    nodeToXml(tree.root, registry, 1),
+    nodeToXml(tree.root, registry, 1, runtime),
     `</BehaviorTree>`
   ].join("\n");
 }

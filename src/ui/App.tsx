@@ -102,6 +102,22 @@ function canAcceptChild(parent: BehaviorNode, definitions: NodeDefinition[]) {
 function Header() {
   const { tree, setTree, mergeDefinitions, setTreeName } = useEditorStore();
   const [filePath, setFilePath] = useState<string>("");
+  const [actionError, setActionError] = useState("");
+  const run = async (action: () => Promise<void>) => { try { setActionError(""); await action(); } catch (error) { setActionError(error instanceof Error ? error.message : String(error)); } };
+  const importSubTree = async () => {
+    const state = useEditorStore.getState();
+    const parent = findNode(state.tree?.root, state.selectedNodeId);
+    if (!parent || !canAcceptChild(parent, state.definitions)) throw new Error("请选择可添加子节点的节点。");
+    const result = await window.brainApi?.openTextFile();
+    if (result) state.insertSubTree(parent.id, parseBehaviorTree(result.content));
+  };
+  const exportRuntime = async () => {
+    const state = useEditorStore.getState();
+    if (!state.tree) return;
+    const errors = validateTree(state.tree, state.definitions).filter((item) => item.level === "error");
+    if (errors.length) throw new Error(errors.map((item) => item.message).join("\n"));
+    await window.brainApi?.saveTextFile(`${state.tree.name}.runtime.xml`, behaviorTreeToXml(state.tree, state.definitions, true));
+  };
 
   const openTree = async () => {
     const result = await window.brainApi?.openTextFile();
@@ -141,16 +157,19 @@ function Header() {
         <span>树名</span>
         <input value={tree?.name ?? ""} onChange={(event) => setTreeName(event.target.value)} />
       </label>
+      {actionError && <span role="alert" className="header-error">{actionError}</span>}
       <div className="header-actions">
-        <button onClick={loadRegistry} title="追加节点定义 XML，同名节点会覆盖默认定义">
+        <button disabled={!tree} onClick={() => void run(importSubTree)}>导入子树</button>
+        <button disabled={!tree} onClick={() => void run(exportRuntime)}>导出运行 XML</button>
+        <button onClick={() => void run(loadRegistry)} title="追加节点定义 XML，同名节点会覆盖默认定义">
           <FolderOpen size={17} />
           追加节点
         </button>
-        <button onClick={openTree} title="打开行为树 XML">
+        <button onClick={() => void run(openTree)} title="打开行为树 XML">
           <FolderOpen size={17} />
           打开树
         </button>
-        <button onClick={saveTree} title="保存行为树 XML">
+        <button onClick={() => void run(saveTree)} title="保存行为树 XML">
           <Save size={17} />
           保存树
         </button>
@@ -369,6 +388,8 @@ function TreePanel() {
   const tree = useEditorStore((state) => state.tree);
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId);
   const clearTree = useEditorStore((state) => state.clearTree);
+  const groupSubTree = useEditorStore((state) => state.groupSubTree);
+  const ungroupSubTree = useEditorStore((state) => state.ungroupSubTree);
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
   const selectedNode = findNode(tree?.root, selectedNodeId);
   const parentHighlightIds = findParentIds(tree?.root, selectedNodeId);
@@ -396,6 +417,9 @@ function TreePanel() {
           <strong>{tree?.name ?? "未命名"}</strong>
           <span>{tree ? "BehaviorTree" : ""}</span>
         </div>
+        <button disabled={!selectedNode || (selectedNode.type === "SubTree" && selectedNode.children.length !== 1)} onClick={() => { if (selectedNode) { if (selectedNode.type === "SubTree") ungroupSubTree(selectedNode.id); else groupSubTree(selectedNode.id); } }}>
+          {selectedNode?.type === "SubTree" ? "取消子树分组" : "标记为子树"}
+        </button>
         <button onClick={newTree} title="新建">
           <Plus size={16} />
           新建
@@ -476,7 +500,7 @@ function PropertyPanel() {
           </label>
         ))}
       </div>
-      {definition.category === "Leaf" && (
+      {definition.category === "Leaf" && node.type !== "WaitEvent" && (
         <div className="debug-control">
           <div className="panel-title">
             调试
@@ -507,10 +531,13 @@ function PreviewPanel() {
   const { definitions, tree, activePreview, setActivePreview, selectNode, debugStatusOverrides } = useEditorStore();
   const [expanded, setExpanded] = useState(false);
   const [panelHeight, setPanelHeight] = useState(270);
+  const [eventInput, setEventInput] = useState("");
+  const eventTokens = eventInput.trim() ? eventInput.trim().split(/[,，\s]+/) : [];
+  const validEvents = eventTokens.every((value) => /^\d+$/.test(value) && Number(value) <= 4294967295);
   const dragState = useRef<{ startY: number; startHeight: number } | null>(null);
   const xml = tree ? behaviorTreeToXml(tree, definitions) : "";
   const issues = tree ? validateTree(tree, definitions) : [];
-  const trace = tree ? generateDebugTrace(tree.root, definitions, debugStatusOverrides) : [];
+  const trace = tree ? generateDebugTrace(tree.root, definitions, debugStatusOverrides, validEvents ? eventTokens.map(Number) : []) : [];
 
   useEffect(() => {
     const onPointerMove = (event: PointerEvent) => {
@@ -566,7 +593,9 @@ function PreviewPanel() {
           )}
           {activePreview === "debug" && (
             <div className="debug-trace">
-              <div className="debug-hint">单 Tick 模拟执行顺序。Leaf 默认返回 Success，后续可以扩展为手动指定返回值。</div>
+              <div className="debug-hint">单 Tick 模拟；Leaf 默认 Success。事件仅用于当前预览，不保留跨帧状态。</div>
+              <label className="param-field"><span>本帧事件编号（逗号分隔）</span><input value={eventInput} onChange={(event) => setEventInput(event.target.value)} placeholder="例如：1001,1002" /></label>
+              {!validEvents && <div role="alert">事件编号必须是 uint32 整数。</div>}
               {trace.map((event) => (
                 <button
                   key={`${event.nodeId}-${event.order}`}

@@ -48,6 +48,12 @@ Node * load_node( engine::XmlNode * xml, const Registry & registry, uint32_t & n
         return nullptr;
     }
 
+    // SubTree is editor metadata: expand before factory creation and ID binding.
+    if ( name == "SubTree" ) {
+        if ( element_child_count( xml ) != 1 ) return nullptr;
+        return load_node( first_element( xml ), registry, nextid );
+    }
+
     auto node = registry.create( name, xml );
     if ( node == nullptr ) {
         return nullptr;

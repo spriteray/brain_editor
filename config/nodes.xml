@@ -67,4 +67,27 @@
     <DisplayName>空行为</DisplayName>
     <Children min="0" max="0" />
   </Node>
+  <Node name="SubTree" category="Decorator" cpp="SubTree" folder="子树">
+    <DisplayName>子树分组</DisplayName>
+    <Description>包含一个子树根节点；运行 XML 导出时展开。</Description>
+    <Children min="1" max="1" />
+    <Param name="name" type="string" default="NewSubTree" order="1" displayName="子树名称" />
+  </Node>
+  <Node name="WaitEvent" category="Leaf" cpp="WaitEvent" folder="事件模式">
+    <DisplayName>等待事件</DisplayName>
+    <Description>事件到达返回 Success，否则保持 Running。</Description>
+    <Children min="0" max="0" />
+    <Param name="eventType" type="int" default="0" order="1" displayName="事件编号 (uint32)" />
+  </Node>
+  <Node name="EventGuard" category="Decorator" cpp="EventGuard" folder="事件模式">
+    <DisplayName>事件守护</DisplayName>
+    <Description>指定事件到达时中断子树并返回 Failure。</Description>
+    <Children min="1" max="1" />
+    <Param name="eventType" type="int" default="0" order="1" displayName="中断事件编号 (uint32)" />
+  </Node>
+  <Node name="ReactiveSelector" category="Composite" cpp="ReactiveSelector" folder="事件模式">
+    <DisplayName>反应式选择</DisplayName>
+    <Description>每帧从首个分支评估，高优先级分支抢占并中断低优先级分支。</Description>
+    <Children min="1" max="*" />
+  </Node>
 </BrainNodeRegistry>

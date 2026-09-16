@@ -18,6 +18,9 @@ interface EditorState {
   setActivePreview: (preview: EditorState["activePreview"]) => void;
   setTreeName: (name: string) => void;
   addChild: (parentId: string, definition: NodeDefinition) => void;
+  insertSubTree: (parentId: string, subtree: BehaviorTree) => void;
+  groupSubTree: (id: string) => void;
+  ungroupSubTree: (id: string) => void;
   removeNode: (id: string) => void;
   moveNode: (id: string, direction: -1 | 1) => void;
   updateParam: (id: string, name: string, value: string) => void;
@@ -88,6 +91,40 @@ export const useEditorStore = create<EditorState>((set) => ({
         }),
         selectedNodeId: child.id
       };
+    }),
+  insertSubTree: (parentId, subtree) =>
+    set((state) => {
+      const wrapper: BehaviorNode = { id: crypto.randomUUID(), type: "SubTree", params: { name: subtree.name }, children: [structuredClone(subtree.root)] };
+      visit(wrapper.children[0], (node) => { node.id = crypto.randomUUID(); });
+      return { tree: updateTree(state.tree, (root) => { visit(root, (node) => { if (node.id === parentId) node.children.push(wrapper); }); }), selectedNodeId: wrapper.id };
+    }),
+  groupSubTree: (id) =>
+    set((state) => {
+      if (!state.tree) return {};
+      const tree = structuredClone(state.tree);
+      let selectedNodeId = state.selectedNodeId;
+      visit(tree.root, (node, parent) => {
+        if (node.id !== id || node.type === "SubTree") return;
+        const wrapper: BehaviorNode = { id: crypto.randomUUID(), type: "SubTree", params: { name: node.type }, children: [node] };
+        if (parent) parent.children[parent.children.indexOf(node)] = wrapper;
+        else tree.root = wrapper;
+        selectedNodeId = wrapper.id;
+      });
+      return { tree, selectedNodeId };
+    }),
+  ungroupSubTree: (id) =>
+    set((state) => {
+      if (!state.tree) return {};
+      const tree = structuredClone(state.tree);
+      let selectedNodeId = state.selectedNodeId;
+      visit(tree.root, (node, parent) => {
+        if (node.id !== id || node.type !== "SubTree" || node.children.length !== 1) return;
+        const child = node.children[0];
+        if (parent) parent.children[parent.children.indexOf(node)] = child;
+        else tree.root = child;
+        selectedNodeId = child.id;
+      });
+      return { tree, selectedNodeId };
     }),
   removeNode: (id) =>
     set((state) => {

@@ -768,3 +768,7 @@ body.resizing-preview * {
   padding: 10px 12px;
   border-radius: 6px;
 }
+
+.tree-name { min-width: 120px; }
+.header-actions button { white-space: nowrap; }
+.header-error { position: fixed; top: 60px; left: 18px; right: 18px; z-index: 10; padding: 10px; background: #fff0ed; color: #9b2920; white-space: pre-wrap; border: 1px solid #d9a39c; border-radius: 6px; }

@@ -4,6 +4,7 @@ interface DebugContext {
   registry: Map<string, NodeDefinition>;
   overrides: Record<string, DebugStatus>;
   events: DebugTraceEvent[];
+  postedEvents: Set<number>;
 }
 
 function pushEvent(
@@ -46,6 +47,10 @@ function simulateLeaf(context: DebugContext, node: BehaviorNode, depth: number):
 }
 
 function simulateDecorator(context: DebugContext, node: BehaviorNode, depth: number): DebugStatus {
+  if (node.type === "EventGuard" && context.postedEvents.has(Number(node.params.eventType))) {
+    pushEvent(context, node, depth, "Failure", "事件到达，中断子树；子树本帧不执行。");
+    return "Failure";
+  }
   const child = node.children[0];
   const childStatus = child ? simulateNode(context, child, depth + 1) : "Invalid";
   let status: DebugStatus = childStatus;
@@ -94,11 +99,11 @@ function simulateComposite(context: DebugContext, node: BehaviorNode, depth: num
     return "Success";
   }
 
-  if (node.type === "Selector") {
+  if (node.type === "Selector" || node.type === "ReactiveSelector") {
     for (const child of node.children) {
       const status = simulateNode(context, child, depth + 1);
       if (status !== "Failure") {
-        pushEvent(context, node, depth, status, "Selector 遇到非 Failure 后停止。");
+        pushEvent(context, node, depth, status, node.type === "ReactiveSelector" ? "从首个分支评估，选中高优先级分支；后续分支本帧不执行。" : "Selector 遇到非 Failure 后停止。");
         return status;
       }
     }
@@ -116,14 +121,10 @@ function simulateComposite(context: DebugContext, node: BehaviorNode, depth: num
 
   if (node.type === "Priority") {
     const first = node.children[0] ? simulateNode(context, node.children[0], depth + 1) : "Invalid";
-    if (first === "Success") {
-      pushEvent(context, node, depth, first, "Priority 首个子节点 Success，后续不执行。");
-      return first;
-    }
     for (const child of node.children.slice(1)) {
       simulateNode(context, child, depth + 1);
     }
-    pushEvent(context, node, depth, first, "Priority 首个子节点非 Success，执行后续子节点但返回首个结果。");
+    pushEvent(context, node, depth, first, "Priority 执行所有子节点并返回首个结果。");
     return first;
   }
 
@@ -135,7 +136,7 @@ function simulateComposite(context: DebugContext, node: BehaviorNode, depth: num
       if (status === "Success") successCount += 1;
       if (status === "Failure") failureCount += 1;
     }
-    const status: DebugStatus = failureCount > 0 ? "Failure" : successCount === node.children.length ? "Success" : "Running";
+    const status: DebugStatus = failureCount >= (node.params.failPolicy === "FAILED_ON_ONE" ? 1 : node.children.length) ? "Failure" : successCount >= (node.params.successPolicy === "SUCCEED_ON_ONE" ? 1 : node.children.length) ? "Success" : "Running";
     pushEvent(context, node, depth, status, "Parallel 模拟执行所有子节点。");
     return status;
   }
@@ -153,6 +154,11 @@ function simulateNode(context: DebugContext, node: BehaviorNode, depth: number):
     pushEvent(context, node, depth, "Invalid", "未知节点，无法模拟。");
     return "Invalid";
   }
+  if (node.type === "WaitEvent") {
+    const status = context.postedEvents.has(Number(node.params.eventType)) ? "Success" : "Running";
+    pushEvent(context, node, depth, status, status === "Success" ? "事件到达。" : "等待事件。");
+    return status;
+  }
   if (definition.category === "Leaf") return simulateLeaf(context, node, depth);
   if (definition.category === "Decorator") return simulateDecorator(context, node, depth);
   return simulateComposite(context, node, depth);
@@ -161,11 +167,13 @@ function simulateNode(context: DebugContext, node: BehaviorNode, depth: number):
 export function generateDebugTrace(
   root: BehaviorNode,
   definitions: NodeDefinition[],
-  overrides: Record<string, DebugStatus> = {}
+  overrides: Record<string, DebugStatus> = {},
+  postedEvents: number[] = []
 ) {
   const context: DebugContext = {
     registry: new Map(definitions.map((definition) => [definition.name, definition])),
     overrides,
+    postedEvents: new Set(postedEvents),
     events: []
   };
   simulateNode(context, root, 0);

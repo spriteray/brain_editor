@@ -38,6 +38,9 @@ function validateNode(
       issues.push(issue(node.id, `${definition.name}.${param.name} is empty.`, param.defaultValue ? "warning" : "error"));
       continue;
     }
+    if ((node.type === "WaitEvent" || node.type === "EventGuard") && param.name === "eventType" && (!/^\d+$/.test(value) || Number(value) > 4294967295)) {
+      issues.push(issue(node.id, `${definition.name}.eventType must be uint32 (0..4294967295).`));
+    }
     if (!validateParamValue(value, param.type, param.values)) {
       issues.push(issue(node.id, `${definition.name}.${param.name} must be ${param.type}.`));
     }

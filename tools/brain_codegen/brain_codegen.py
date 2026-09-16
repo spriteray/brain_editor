@@ -168,12 +168,22 @@ def validate_construct(node_def: NodeDef) -> None:
 
 def emit_node(elem: ET.Element, nodes: dict[str, NodeDef], depth: int, lines: list[str]) -> None:
     name = node_type(elem)
+    if name == "SubTree":
+        children = list(elem)
+        if len(children) != 1:
+            raise ValueError("SubTree must have exactly one root.")
+        emit_node(children[0], nodes, depth, lines)
+        return
     if name not in nodes:
         raise ValueError(f"Unknown node type: {name}")
 
     node_def = nodes[name]
     validate_construct(node_def)
     indent = "    " * depth
+    if name in ("WaitEvent", "EventGuard"):
+        value = elem.attrib.get("eventType", "0")
+        if not value.isascii() or not value.isdigit() or int(value) > 4294967295:
+            raise ValueError(f"{name}.eventType must be uint32.")
     args = node_args(elem, node_def)
     call_args = f"({args})" if args else "()"
 
@@ -287,8 +297,10 @@ def generate_registry(nodes: dict[str, NodeDef], registry_type: str, include: st
     ]
 
     for node in sorted(nodes.values(), key=lambda item: item.name):
+        if node.name == "SubTree":
+            continue
         validate_construct(node)
-        args = [registry_arg_expr(param) for param in node.params]
+        args = [f'engine::xmlget<uint32_t>( root, "eventType" )' if node.name in ("WaitEvent", "EventGuard") and param.name == "eventType" else registry_arg_expr(param) for param in node.params]
         lines.extend(
             [
                 f"    registry.reg( \"{node.name}\", [] ( engine::XmlNode * root ) -> Node * {{",
